@@ -62,12 +62,12 @@ def process_games(games_file)
 
     needs_controller = columns[4] == "yes"
     if needs_controller
-      link += '\n** The developer has indicated that this game requires a controller.'
+      link += '** The developer has indicated that this game requires a controller.'
     end
 
     multiplayer_only = columns[5] == "yes"
     if multiplayer_only
-      link += '\n** This game requires at least two players.'
+      link += '** This game requires at least two players.'
     end
 
     # games that are harder (or easier) to match up should be weighted appropriately
