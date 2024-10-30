@@ -58,24 +58,24 @@ def process_games(games_file)
   File.readlines(games_file, chomp: true).drop(1).each do |line|
     columns = line.split(/\t/)
 
-    title, link, keys, platforms = columns[0..3]
+    title, link, keys, notes, platforms = columns[0..4]
 
-    needs_controller = columns[4] == "yes"
-    if needs_controller
-      link += '** The developer has indicated that this game requires a controller.'
-    end
-
-    multiplayer_only = columns[5] == "yes"
+    multiplayer_only = columns[6] == "yes"
     if multiplayer_only
-      link += '** This game requires at least two players.'
+      notes += ' This game requires at least two players.'
     end
 
+    needs_controller = columns[5] == "yes"
+    if needs_controller
+      notes += ' The developer has indicated that this game requires a controller.'
+    end
+    
     # games that are harder (or easier) to match up should be weighted appropriately
     weight = 1
     weight += 1 if needs_controller
     weight -= 1 if platforms.include?("Web")
   
-    games[title] = { link: link, keys: keys.split(/\s/), platforms: platforms, needs_controller: needs_controller, weight: weight }    
+    games[title] = { link: link, keys: keys.split(/\s/), notes: notes.strip, platforms: platforms, needs_controller: needs_controller, weight: weight }    
   end
 
   games = games.sort_by { | k,v | -v[:weight] }.to_h
@@ -159,7 +159,7 @@ def create_output_files(assignments_by_curator, mail_merge_file, basic_details_f
   assignments_by_curator.sort.to_h.each do | name, games |
     line = [name, @curators[name][:email]]
     games.each do | title |
-      line += [title, @games[title][:link], @games[title][:keys].shift]
+      line += [title, @games[title][:link], @games[title][:keys].shift, @games[title][:notes]]
     end
     File.write(mail_merge_file, line.join("\t")+"\n",  mode: 'a')
     
