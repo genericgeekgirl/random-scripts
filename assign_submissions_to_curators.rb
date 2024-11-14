@@ -2,7 +2,7 @@
 # Adri - Oct 23 2024
 
 CURATORS_PER_GAME = 3
-GAMES_PER_CURATOR = 4
+GAMES_PER_CURATOR = 5
 
 ## INPUT
 
@@ -14,7 +14,7 @@ curators_file = "input/curators.tsv"
 # platforms game can run on, is a controller required?, is the game (strictly) multiplayer?]
 games_file = "input/games.tsv"
 
-# hardcoded matchups: [title, name+]
+# hardcoded matchups: [title, name+] OR [name, title+]
 assignments_file = "input/assignments.tsv"
 
 ## OUTPUT
@@ -43,7 +43,7 @@ def process_curators(curators_file)
       end
     end
     
-    curators[name] = { email: email, platforms: platforms, has_controller: has_controller, weight: weight }
+    curators[name.strip] = { email: email, platforms: platforms, has_controller: has_controller, weight: weight }
   end
 
   curators = curators.sort_by { | k,v | v[:weight] }.to_h
@@ -75,7 +75,7 @@ def process_games(games_file)
     weight += 1 if needs_controller
     weight -= 1 if platforms.include?("Web")
   
-    games[title] = { link: link, keys: keys.split(/\s/), notes: notes.strip, platforms: platforms, needs_controller: needs_controller, weight: weight }    
+    games[title.strip] = { link: link, keys: keys.split(/\s/), notes: notes.strip, platforms: platforms, needs_controller: needs_controller, weight: weight }    
   end
 
   games = games.sort_by { | k,v | -v[:weight] }.to_h
@@ -83,8 +83,40 @@ def process_games(games_file)
   return games
 end
 
+def initialize_assignments(assignments_file)
+  line = File.open(assignments_file, &:gets)
+  columns = line.split(/\t/)
+  key = columns.first
+  return initialize_assignments_by_curator(assignments_file)  if key == "Name"
+  return initialize_assignments_by_game(assignments_file)  if key == "Game Title"
+end
+
+def initialize_assignments_by_curator(assignments_file)
+  assignments_by_curator = {}
+  
+  @curators.keys.each do | name |
+    assignments_by_curator[name] = []
+  end
+  
+  if File.file?(assignments_file)
+    File.readlines(assignments_file, chomp: true).drop(1).each do |line|
+      columns = line.split(/\t/)
+
+      curator = columns[0]
+      games = columns[1..-1]
+  
+      games.each do | title |
+        # clean up input so it matches spreadsheet data
+        assignments_by_curator[curator.strip] << title.strip
+      end
+    end    
+  end
+
+  return assignments_by_curator
+end
+
 ## we might have done some pre-matching of curators to games, because Reasons
-def initialize_assignments(assignments_file)  
+def initialize_assignments_by_game(assignments_file)  
   assignments_by_curator = {}
   
   @curators.keys.each do | name |
@@ -155,7 +187,7 @@ def create_output_files(assignments_by_curator, mail_merge_file, basic_details_f
     puts "No assignments made."
     return
   end
-  
+
   assignments_by_curator.sort.to_h.each do | name, games |
     line = [name, @curators[name][:email]]
     games.each do | title |
