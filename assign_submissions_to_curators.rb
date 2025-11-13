@@ -194,12 +194,16 @@ def create_output_files(assignments_by_curator, mail_merge_file, basic_details_f
   end
 
   assignments_by_curator.sort.to_h.each do | name, games |
-    line = [@curators[name][:first_name], @curators[name][:email]]
+    total = games.count
+    n = 0
     games.each do | title |
+      n += 1
       game = @games[title]
+      line = [@curators[name][:first_name], @curators[name][:email]]
       line += [title, "\"#{game[:description]}\"", game[:three_words], "\"#{game[:link]}\"", game[:keys].shift, "\"#{game[:notes]}\""]
+      line += [n, total]
+      File.write(mail_merge_file, line.join("\t")+"\n",  mode: 'a')
     end
-    File.write(mail_merge_file, line.join("\t")+"\n",  mode: 'a')
     
     line = [name] + games
     File.write(basic_details_file, line.join("\t")+"\n",  mode: 'a')
